@@ -1,8 +1,6 @@
 Multithreading DBSCAN algorithm
 ==================
 
-Implementação do algoritmo de agrupamento DBSCAN multithreading. 
-
 Este projeto faz parte da disciplina de Sistemas Microprocessados, do curso de Engenharia de Computação da Universidade Federal do Rio Grande.
 
 Como executar o código
