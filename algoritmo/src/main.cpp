@@ -4,6 +4,8 @@
 #include <fstream>
 #include <cmath>
 #include <map>
+#include <algorithm>
+#include <glib.h>
 
 using namespace std;
 
@@ -39,9 +41,31 @@ public:
         adjPoints.resize(size);
         this->clusterIdx=-1;
     }
-    void run () {
+    void runSequential () {
         checkNearPoints();
         
+        for(int i=0;i<size;i++) {
+            if(points[i].cluster != NOT_CLASSIFIED) continue;
+            
+            if(isCoreObject(i)) {
+                dfs(i, ++clusterIdx);
+            } else {
+                points[i].cluster = NOISE;
+            }
+        }
+        
+        cluster.resize(clusterIdx+1);
+        for(int i=0;i<size;i++) {
+            if(points[i].cluster != NOISE) {
+                cluster[points[i].cluster].push_back(i);
+            }
+        }
+    }
+
+    void runParallel () {
+        checkNearPoints();
+        
+        #pragma omp parallel for
         for(int i=0;i<size;i++) {
             if(points[i].cluster != NOT_CLASSIFIED) continue;
             
@@ -169,10 +193,37 @@ int main(int argc, const char * argv[]) {
     InputReader inputReader(inputFileName);
     
     DBCAN dbScan(stoi(n), stod(eps), stoi(minPts), inputReader.getPoints());
-    dbScan.run();
+
+// ----------------------------------------------------------------------- //
+//                          SEQUENCIAL
+// ----------------------------------------------------------------------- //
+	GTimer* timer = g_timer_new();
+    dbScan.runSequential();
+	g_timer_stop(timer);
+
+	gulong micro;
+	double elapsed = g_timer_elapsed(timer, &micro);
+	
+	printf("Sequencial: %lf seg \n\n", (elapsed*1));
+// ----------------------------------------------------------------------- //
+
+
+
+// ----------------------------------------------------------------------- //
+//                          PARALELO
+// ----------------------------------------------------------------------- //
+	GTimer* timer_parallel = g_timer_new();
+    dbScan.runParallel();
+	g_timer_stop(timer_parallel);
+
+	gulong micro_parallel;
+	double elapsed_parallel = g_timer_elapsed(timer_parallel, &micro_parallel);
+	
+	printf("Paralelo: %lf seg \n\n", (elapsed_parallel*1));
+// ----------------------------------------------------------------------- //
     
-    OutputPrinter outputPrinter(stoi(n), inputFileName, dbScan.getCluster());
-    outputPrinter.print();
+    //OutputPrinter outputPrinter(stoi(n), inputFileName, dbScan.getCluster());
+    //outputPrinter.print();
     
     return 0;
 }
