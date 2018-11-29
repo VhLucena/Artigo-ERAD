@@ -8,7 +8,7 @@ Este projeto faz parte da disciplina de Sistemas Microprocessados, do curso de E
 Como executar o código
 =========================
 
-=======
+
 Este projeto faz parte da disciplina de Sistemas Microprocessados, do curso de Engenharia de Computação da Universidade Federal do Rio Grande.
 
 Como executar o código
@@ -28,7 +28,7 @@ Como executar o código
 3. O resultado estará na pasta `input`.
 
 Autores
-===========
+
 Felipe Lopes - [<>]
 
 Felipe Freitas - [<>]
