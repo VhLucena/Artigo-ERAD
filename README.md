@@ -28,6 +28,7 @@ Como executar o código
 3. O resultado estará na pasta `input`.
 
 Autores
+=========================
 
 Felipe Lopes - [<>]
 
