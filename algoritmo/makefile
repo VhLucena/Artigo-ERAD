@@ -3,3 +3,6 @@ main: src/main.cpp
 
 teste: src/teste.cpp
 	g++ -std=c++11 src/teste.cpp -o bin/teste -fopenmp
+
+main-mac: src/main.cpp
+	clang++ src/main.cpp -o bin/main-mac -Xpreprocessor -fopenmp -lomp 
