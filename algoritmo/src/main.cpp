@@ -8,10 +8,12 @@
 #include <omp.h>
 //#include <glib.h>
 
+
 using namespace std;
 
 const int NOISE = -2;
 const int NOT_CLASSIFIED = -1;
+static int NUM_THREADS = 4;
 
 class Point {
     public:
@@ -64,9 +66,8 @@ class DBCAN {
         }
 
         void runParallel () {
-            checkNearPoints();
+            checkNearPointsParallel();
             
-            #pragma omp parallel for
             for(int i=0;i<size;i++) {
                 if(points[i].cluster != NOT_CLASSIFIED) continue;
                 
@@ -76,13 +77,14 @@ class DBCAN {
                     points[i].cluster = NOISE;
                 }
             }
-            
+          
             cluster.resize(clusterIdx+1);
             for(int i=0;i<size;i++) {
                 if(points[i].cluster != NOISE) {
                     cluster[points[i].cluster].push_back(i);
                 }
             }
+            
         }
         
         void dfs (int now, int c) {
@@ -92,6 +94,21 @@ class DBCAN {
             for(auto&next:adjPoints[now]) {
                 if(points[next].cluster != NOT_CLASSIFIED) continue;
                 dfs(next, c);
+            }
+        }
+        
+        void checkNearPointsParallel() {
+            #pragma omp parallel for
+            {
+                for(int i=0;i<size;i++) {
+                    for(int j=0;j<size;j++) {
+                        if(i==j) continue;
+                        if(points[i].getDis(points[j]) <= eps) {
+                            points[i].ptsCnt++;
+                            adjPoints[i].push_back(j);
+                        }
+                    }
+                }
             }
         }
         
@@ -185,40 +202,45 @@ int main(int argc, const char * argv[]) {
         cout << "Please follow this format. clustering.exe [intput] [n] [eps] [minPts]";
         return 0;
     }
-    
+
     string inputFileName(argv[1]);
     string n(argv[2]);
     string eps(argv[3]);
     string minPts(argv[4]);
+   
+    ofstream file;
+    file.open("comparacao.csv", ios_base::app);
 
-    double start_time, elapsed_time;
+    double start_time, elapsed_time_parallel=0, elapsed_time_sequential=0;
     
     InputReader inputReader(inputFileName);
     
     DBCAN dbScan(stoi(n), stod(eps), stoi(minPts), inputReader.getPoints());
 
-// ----------------------------------------------------------------------- //
-//                          SEQUENCIAL
-// ----------------------------------------------------------------------- //
-	start_time = omp_get_wtime();
-    dbScan.runSequential();
-	elapsed_time = omp_get_wtime() - start_time;
+    for( int n_threads = 1; n_threads <= 100; n_threads++ ) { 
+        omp_set_num_threads(n_threads);
+ /*       
+        // -------------------------------SEQUENCIAL------------------------------- //
+        start_time = omp_get_wtime();
+        dbScan.runSequential();
+        elapsed_time_sequential = omp_get_wtime() - start_time;
 
-	printf("Sequencial: %lf seconds \n\n", (elapsed_time*1));
-// ----------------------------------------------------------------------- //
+        printf("Sequencial:\t %lf seconds \n", elapsed_time_sequential);
+        // ----------------------------------------------------------------------- //
+*/
+                            
+        // -------------------------------PARALELO-------------------------------- //
+        start_time = omp_get_wtime();
+        dbScan.runParallel();
+        elapsed_time_parallel = omp_get_wtime() - start_time;
 
+        printf("Paralelo:\t %lf seconds \n\n", elapsed_time_parallel);
+        // ----------------------------------------------------------------------- //
+        
+        file << n_threads << ";" << "50000" << ";" << elapsed_time_sequential << ";" << elapsed_time_parallel << endl;
+        
+    }
 
-
-// ----------------------------------------------------------------------- //
-//                          PARALELO
-// ----------------------------------------------------------------------- //
-	start_time = omp_get_wtime();
-    dbScan.runParallel();
-	elapsed_time = omp_get_wtime() - start_time;
-
-	printf("Paralelo: %lf seconds \n\n", (elapsed_time*1));
-// ----------------------------------------------------------------------- //
-    
     //OutputPrinter outputPrinter(stoi(n), inputFileName, dbScan.getCluster());
     //outputPrinter.print();
     
